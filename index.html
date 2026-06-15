@@ -96,6 +96,7 @@
 
     <script>
         let eskiVeriString = "";
+        let canliYayinZamanlayici = null; // Saniyeli yenilemeyi yönetecek motor
 
         function verileriCek() {
             fetch('/api/durum?t=' + new Date().getTime())
@@ -140,11 +141,26 @@
         }
 
         function openLive(ip) {
-            document.getElementById('liveStreamImg').src = '/api/canli_yayin/' + ip;
+            const imgElementi = document.getElementById('liveStreamImg');
+            
+            // İlk kareyi zaman damgasıyla temiz şekilde yükle
+            imgElementi.src = '/api/canli_yayin/' + ip + '?t=' + new Date().getTime();
             document.getElementById('liveModal').classList.add('show');
+            
+            if (canliYayinZamanlayici) clearInterval(canliYayinZamanlayici);
+            
+            // Belirlenen saniyede bir (1000ms = 1 Saniye) resmi sunucudan taze çeker
+            canliYayinZamanlayici = setInterval(() => {
+                imgElementi.src = '/api/canli_yayin/' + ip + '?t=' + new Date().getTime();
+            }, 1000); 
         }
 
         function closeLive() {
+            // Kapatıldığında arka plandaki saniyeli sorgu motorunu durdurur
+            if (canliYayinZamanlayici) {
+                clearInterval(canliYayinZamanlayici);
+                canliYayinZamanlayici = null;
+            }
             document.getElementById('liveStreamImg').src = "";
             document.getElementById('liveModal').classList.remove('show');
         }
