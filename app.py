@@ -1,77 +1,68 @@
-from flask import Flask, render_template, jsonify, request, Response
-import time
+from flask import Flask, render_template, Response
+from flask_socketio import SocketIO, emit
 import os
+import time
 
 app = Flask(__name__, template_folder=os.getcwd())
+app.config['SECRET_KEY'] = 'vayonur_secret!'
+# CORS ayarları ile dışarıdan gelen canlı yayın bağlantılarına izin veriyoruz
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Aktif cihazların verileri ve canlı ekran kareleri
+# Cihazların bilgilerini ve anlık ekran karelerini tutan dinamik bellek
 aktif_cihazlar = {}
 
 @app.route('/')
 def ana_sayfa():
     return render_template('index.html')
 
-@app.route('/api/durum', methods=['GET'])
-def durumu_getir():
-    global aktif_cihazlar
-    su_an = time.time()
-    
-    # 6 saniye boyunca sinyal vermeyen cihazı listeden siler
-    silinecekler = [ip for ip, veri in aktif_cihazlar.items() if (su_an - veri["son_sinyal"]) > 6]
-    for ip in silinecekler:
-        if ip in aktif_cihazlar:
-            del aktif_cihazlar[ip]
-        
-    temiz_liste = {}
-    for ip, veri in aktif_cihazlar.items():
-        temiz_liste[ip] = {
-            "bilgisayar_adi": veri["bilgisayar_adi"]
+# İstemci bilgisayar sunucuya bağlandığında tetiklenir
+@socketio.on('cihaz_baglan')
+def cihaz_baglan(veri):
+    ip = veri.get('ip')
+    if ip:
+        aktif_cihazlar[ip] = {
+            "sid": request.sid,
+            "bilgisayar_adi": veri.get('cihaz_adi', 'Bilinmeyen Cihaz'),
+            "son_sinyal": time.time(),
+            "kare": b""
         }
-    return jsonify(temiz_liste)
+        # Web arayüzündeki kullanıcılara cihaz listesini güncellemesini söyler
+        emit('cihaz_listesi_guncelle', get_temiz_liste(), broadcast=True)
 
-@app.route('/api/guncelle', methods=['POST'])
-def durumu_guncelle():
-    global aktif_cihazlar
-    veri = request.json or {}
-    ip_adresi = veri.get("ip_adresi")
-    durum = veri.get("aktif_kullanici", 0)
-    
-    if ip_adresi and ip_adresi != "IP Tespit Edilemedi":
-        if durum == 1:
-            if ip_adresi not in aktif_cihazlar:
-                aktif_cihazlar[ip_adresi] = {
-                    "bilgisayar_adi": veri.get("bilgisayar_adi", "Bilinmeyen Cihaz"),
-                    "canli_kare": b"",
-                    "son_sinyal": time.time()
-                }
-            else:
-                aktif_cihazlar[ip_adresi]["son_sinyal"] = time.time()
-        else:
-            if ip_adresi in aktif_cihazlar:
-                del aktif_cihazlar[ip_adresi]
-                
-    return jsonify({"durum": "ok"})
+@socketio.on('ekran_akisi')
+def ekran_akisi(veri):
+    ip = veri.get('ip')
+    if ip in aktif_cihazlar:
+        # Gelen yeni kare eskisinin üzerine yazılır, eski veri hafızadan silinir
+        aktif_cihazlar[ip]["kare"] = veri.get('kare')
+        aktif_cihazlar[ip]["son_sinyal"] = time.time()
 
-@app.route('/api/yayin_yukle', methods=['POST'])
-def yayin_yukle():
-    global aktif_cihazlar
-    ip_adresi = request.headers.get("X-Device-IP")
-    
-    if ip_adresi in aktif_cihazlar:
-        aktif_cihazlar[ip_adresi]["canli_kare"] = request.data
-        aktif_cihazlar[ip_adresi]["son_sinyal"] = time.time()
-        return "ok", 200
-    return "cihaz yok", 404
+@socketio.on('disconnect')
+def baglanti_koptu():
+    # Bağlantısı kesilen cihazı tespit edip listeden temizler
+    for ip, veri in list(aktif_cihazlar.items()):
+        if veri["sid"] == request.sid:
+            del aktif_cihazlar[ip]
+            emit('cihaz_listesi_guncelle', get_temiz_liste(), broadcast=True)
+            break
+
+def get_temiz_liste():
+    return {ip: {"bilgisayar_adi": v["bilgisayar_adi"]} for ip, v in aktif_cihazlar.items()}
 
 def kare_ustureteci(ip_adresi):
-    global aktif_cihazlar
     while True:
-        time.sleep(0.04)
+        time.sleep(0.03) # ~30 FPS yayın hızı
         if ip_adresi in aktif_cihazlar:
-            kare = aktif_cihazlar[ip_adresi].get("canli_kare", b"")
+            kare = aktif_cihazlar[ip_adresi].get("kare", "")
             if kare:
+                # Base64 veya binary olarak gelen kareyi tarayıcıya gönderir
+                import base64
+                if isinstance(kare, str) and "," in kare:
+                    kare_bytes = base64.b64decode(kare.split(",")[1])
+                else:
+                    kare_bytes = kare
                 yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + kare + b'\r\n')
+                       b'Content-Type: image/jpeg\r\n\r\n' + kare_bytes + b'\r\n')
         else:
             break
 
@@ -81,6 +72,5 @@ def canli_yayin(ip_adresi):
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    # İnternet sunucularında port otomatik atanacağı için çevre değişkenine uyumlu hale getirildi
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, port=port, host='0.0.0.0')
+    socketio.run(app, debug=False, port=port, host='0.0.0.0')
