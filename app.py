@@ -2,9 +2,9 @@ from flask import Flask, render_template, jsonify, request, Response
 import time
 import os
 
-# templates klasörü olmadan doğrudan yanındaki index.html'i okuması sağlandı
 app = Flask(__name__, template_folder=os.getcwd())
 
+# Aktif cihazların verileri ve canlı ekran kareleri
 aktif_cihazlar = {}
 
 @app.route('/')
@@ -16,6 +16,7 @@ def durumu_getir():
     global aktif_cihazlar
     su_an = time.time()
     
+    # 6 saniye boyunca sinyal vermeyen cihazı listeden siler
     silinecekler = [ip for ip, veri in aktif_cihazlar.items() if (su_an - veri["son_sinyal"]) > 6]
     for ip in silinecekler:
         if ip in aktif_cihazlar:
@@ -80,4 +81,6 @@ def canli_yayin(ip_adresi):
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=False, port=5000, host='0.0.0.0')
+    # İnternet sunucularında port otomatik atanacağı için çevre değişkenine uyumlu hale getirildi
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, port=port, host='0.0.0.0')
