@@ -3,129 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Dashboard | Canlı Ekran Takibi</title>
+    <title>Sistem Snapshot Dashboard</title>
     <style>
         :root {
-            --bg-color: #0c0c0e;
-            --card-bg: #16161a;
-            --text-primary: #f1f1f1;
-            --text-secondary: #94a3b8;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-blue: #2563eb;
-            --border-color: #24242b;
-            --shadow: 0 10px 30px rgba(0,0,0,0.7);
+            --bg-color: #0c0c0e; --card-bg: #16161a; --text-primary: #f1f1f1;
+            --text-secondary: #94a3b8; --accent-green: #10b981; --accent-blue: #2563eb;
+            --border-color: #24242b; --shadow: 0 10px 30px rgba(0,0,0,0.7);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color);
-            color: var(--text-primary); display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; padding: 40px 20px;
-        }
-        header {
-            width: 100%; max-width: 1200px; padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color); margin-bottom: 40px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        header h1 { font-size: 22px; font-weight: 300; letter-spacing: 1px; }
-        header h1 span { font-weight: 800; color: #fff; }
-        .active-badge {
-            background-color: rgba(16, 185, 129, 0.1); color: var(--accent-green);
-            padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.2);
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-primary); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px 20px; }
+        header { width: 100%; max-width: 1200px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 22px; font-weight: 300; }
+        header h1 span { font-weight: 800; }
+        .active-badge { background-color: rgba(16, 185, 129, 0.1); color: var(--accent-green); padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.2); }
         .dashboard-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; width: 100%; max-width: 1200px; }
-        .device-card {
-            background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px;
-            padding: 25px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 15px;
-            transition: all 0.3s ease;
-        }
-        .device-card:hover { transform: translateY(-6px); border-color: #3b3b4f; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
+        .device-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 25px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
         .device-name { font-size: 18px; font-weight: 700; color: #fff; }
-        
-        .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background-color: var(--accent-green); position: relative; }
-        .pulse-dot::after {
-            content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background-color: var(--accent-green); animation: pulse 2s infinite; top: 0; left: 0;
-        }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
-
-        .card-body { display: flex; flex-direction: column; gap: 8px; }
+        .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background-color: var(--accent-green); }
+        .card-body { display: flex; flex-direction: column; gap: 12px; }
         .info-row { display: flex; justify-content: space-between; font-size: 14px; }
         .info-label { color: var(--text-secondary); }
-        .info-value { color: #fff; font-family: monospace; font-weight: 600; }
-        
-        .live-btn {
-            background-color: var(--accent-red); color: white; border: none; padding: 12px;
-            border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; margin-top: 10px;
-            transition: background 0.2s; text-align: center; letter-spacing: 0.5px;
-        }
-        .live-btn:hover { background-color: #dc2626; }
-        
+        .info-value { color: #fff; font-family: monospace; }
+        .action-btn { background-color: var(--accent-blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; text-align: center; }
+        .action-btn:hover { background-color: #1d4ed8; }
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-secondary); border: 2px dashed var(--border-color); border-radius: 14px; }
         
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.95); align-items: center; justify-content: center; flex-direction: column; gap: 15px;
-        }
+        /* Modal Yapısı */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
         .modal.show { display: flex; }
-        .modal-content {
-            max-width: 90%; max-height: 75%; border-radius: 10px; border: 4px solid #24242b;
-            background-color: #000;
-        }
+        .modal-content { max-width: 90%; max-height: 70%; border-radius: 10px; border: 4px solid #24242b; background-color: #000; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; cursor: pointer; user-select: none; }
-        .live-indicator { color: var(--accent-red); font-weight: 800; font-size: 16px; animation: blink 1s infinite; letter-spacing: 1px; }
         
-        /* Tam Oturtulmuş Yenileme Butonu */
-        .refresh-btn {
-            background-color: var(--accent-blue); color: white; border: none; padding: 10px 24px;
-            border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;
-            transition: background 0.2s, transform 0.1s; display: flex; align-items: center; gap: 8px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); margin-bottom: 5px;
-        }
-        .refresh-btn:hover { background-color: #1d4ed8; }
-        .refresh-btn:active { transform: scale(0.95); }
-
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        /* Kontrol Paneli Alanı */
+        .controls { display: flex; align-items: center; gap: 15px; background: #16161a; padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .controls select { background: #0c0c0e; color: white; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .btn-refresh { background-color: #10b981; color: white; border: none; padding: 8px 16px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+        .btn-refresh:hover { background-color: #059669; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>SİSTEM <span>PANELİ</span></h1>
+        <h1>SİSTEM <span>SNAPSHOT</span></h1>
         <div id="total-count" class="active-badge">Aktif Cihaz: 0</div>
     </header>
 
     <div id="dashboard" class="dashboard-container">
-        <div class="empty-state">Şu an aktif bağlantı yok. Cihaz bekleniyor...</div>
+        <div class="empty-state">Cihaz bekleniyor...</div>
     </div>
 
     <div id="liveModal" class="modal">
         <span class="close-modal" onclick="closeLive()">&times;</span>
-        <div class="live-indicator">🔴 CANLI YAYIN TAKİBİ</div>
         
-        <button id="manualRefreshBtn" class="refresh-btn">🔄 GÖRÜNTÜYÜ YENİLE</button>
-        
-        <img class="modal-content" id="liveStreamImg" src="">
+        <div class="controls">
+            <button class="btn-refresh" onclick="manuelSSTetikle()">📸 ŞİMDİ SS AL / YENİLE</button>
+            <label for="loopSelect">🔄 Oto Döngü:</label>
+            <select id="loopSelect" onchange="donguDegisti()">
+                <option value="0">Kapat (Manuel)</option>
+                <option value="2000">2 Saniyede Bir</option>
+                <option value="5000">5 Saniyede Bir</option>
+                <option value="10000">10 Saniyede Bir</option>
+            </select>
+        </div>
+
+        <img class="modal-content" id="liveStreamImg" src="" alt="Ekran Görüntüsü Yükleniyor...">
     </div>
 
     <script>
-        let eskiVeriString = "";
-        let mevcutAktifIP = ""; 
+        let globalCihazlar = {};
+        let mevcutAktifIP = "";
+        let otoDonguZamanlayici = null;
 
         function verileriCek() {
             fetch('/api/durum?t=' + new Date().getTime())
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(devices => {
-                    const yeniVeriString = JSON.stringify(devices);
+                    globalCihazlar = devices;
                     const dashboard = document.getElementById('dashboard');
                     const totalCount = document.getElementById('total-count');
                     const ipListesi = Object.keys(devices);
                     
                     totalCount.innerText = `Aktif Cihaz: ${ipListesi.length}`;
-
-                    if (yeniVeriString === eskiVeriString) return; 
-                    eskiVeriString = yeniVeriString;
 
                     if (ipListesi.length === 0) {
                         dashboard.innerHTML = '<div class="empty-state">Şu an aktif bağlantı yok. Cihaz bekleniyor...</div>';
@@ -133,60 +92,67 @@
                         return;
                     }
 
+                    // Sadece liste yapısını koru, kartları baştan çizme (ekran kırpışmasını önler)
                     let htmlIcerik = '';
                     for (const ip of ipListesi) {
-                        const cihaz = devices[ip];
                         htmlIcerik += `
                             <div class="device-card">
                                 <div class="card-header">
-                                    <div class="device-name">${cihaz.bilgisayar_adi}</div>
+                                    <div class="device-name">${devices[ip].bilgisayar_adi}</div>
                                     <div class="pulse-dot"></div>
                                 </div>
                                 <div class="card-body">
                                     <div class="info-row"><span class="info-label">IP Adresi:</span><span class="info-value">${ip}</span></div>
-                                    <div class="info-row"><span class="info-label">Durum:</span><span class="info-value" style="color: var(--accent-green)">ÇEVRİMİÇİ</span></div>
-                                    <button class="live-btn" onclick="openLive('${ip}')">📺 CANLI İZLE</button>
+                                    <button class="action-btn" onclick="openLive('${ip}')">🖥️ EKRANI GÖRÜNTÜLE</button>
                                 </div>
                             </div>
                         `;
                     }
                     dashboard.innerHTML = htmlIcerik;
-                })
-                .catch(err => console.error("Hata:", err));
-        }
 
-        // İstediğin Kesin Yenileme Mantığı: Aç-Kapat Etkisi Yaratır
-        function butondanYenile() {
-            if (!mevcutAktifIP) return;
-            const imgElementi = document.getElementById('liveStreamImg');
-            
-            // Önce mevcut canlı akış tünelini tamamen koparıp boşa düşürüyoruz
-            imgElementi.src = ""; 
-            
-            // 50 milisaniye sonra sıfırdan temiz bir bağlantı isteği açıyoruz (Önbelleği bypass eder)
-            setTimeout(() => {
-                imgElementi.src = '/api/canli_yayin/' + mevcutAktifIP + '?t=' + new Date().getTime();
-            }, 50);
+                    // Eğer modal açıksa resmi RAM'deki son veriyle güncelle
+                    if (mevcutAktifIP && globalCihazlar[mevcutAktifIP]) {
+                        const base64Verisi = globalCihazlar[mevcutAktifIP].son_ss;
+                        if (base64Verisi) {
+                            document.getElementById('liveStreamImg').src = "data:image/jpeg;base64," + base64Verisi;
+                        }
+                    }
+                }).catch(err => console.error(err));
         }
 
         function openLive(ip) {
-            mevcutAktifIP = ip; 
-            const imgElementi = document.getElementById('liveStreamImg');
-            imgElementi.src = '/api/canli_yayin/' + ip + '?t=' + new Date().getTime();
+            mevcutAktifIP = ip;
             document.getElementById('liveModal').classList.add('show');
+            manuelSSTetikle(); // Açıldığı an bir kere zorunlu tetikle
         }
 
         function closeLive() {
             mevcutAktifIP = "";
+            document.getElementById('loopSelect').value = "0";
+            donguDegisti();
             document.getElementById('liveStreamImg').src = "";
             document.getElementById('liveModal').classList.remove('show');
         }
 
-        // Yenile butonuna tıklanınca aç-kapat simülasyonunu tetikle
-        document.getElementById('manualRefreshBtn').addEventListener('click', butondanYenile);
+        // İstemciye "bana acil yeni ss yolla" sinyali göndermek yerine, istemci zaten sürekli durum kontrolü yapar.
+        // Biz burada local tetiği hızlandırmak için sunucudan anlık son veriyi zorluyoruz.
+        function manuelSSTetikle() {
+            verileriCek();
+        }
+
+        function donguDegisti() {
+            const sure = parseInt(document.getElementById('loopSelect').value);
+            if (otoDonguZamanlayici) clearInterval(otoDonguZamanlayici);
+            
+            if (sure > 0) {
+                otoDonguZamanlayici = setInterval(() => {
+                    manuelSSTetikle();
+                }, sure);
+            }
+        }
 
         verileriCek();
-        setInterval(verileriCek, 1500);
+        setInterval(verileriCek, 1500); // Durum kontrolü her 1.5 saniyede bir akacak
     </script>
 </body>
 </html>
