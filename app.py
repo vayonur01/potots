@@ -1,10 +1,10 @@
-from flask import Flask, render_template, Response, request, jsonify
-import os
+from flask import Flask, render_template, jsonify, request, Response
 import time
+import os
 
+# templates klasörü olmadan doğrudan yanındaki index.html'i okuması sağlandı
 app = Flask(__name__, template_folder=os.getcwd())
 
-# Gelen karelerin bellekte tutulduğu alan
 aktif_cihazlar = {}
 
 @app.route('/')
@@ -16,29 +16,51 @@ def durumu_getir():
     global aktif_cihazlar
     su_an = time.time()
     
-    # Sinyal kesilen cihazları listeden temizle
-    silinecekler = [ip for ip, veri in aktif_cihazlar.items() if (su_an - veri["son_sinyal"]) > 8]
+    silinecekler = [ip for ip, veri in aktif_cihazlar.items() if (su_an - veri["son_sinyal"]) > 6]
     for ip in silinecekler:
         if ip in aktif_cihazlar:
             del aktif_cihazlar[ip]
         
-    return jsonify({ip: {"bilgisayar_adi": v["bilgisayar_adi"]} for ip, v in aktif_cihazlar.items()})
+    temiz_liste = {}
+    for ip, veri in aktif_cihazlar.items():
+        temiz_liste[ip] = {
+            "bilgisayar_adi": veri["bilgisayar_adi"]
+        }
+    return jsonify(temiz_liste)
+
+@app.route('/api/guncelle', methods=['POST'])
+def durumu_guncelle():
+    global aktif_cihazlar
+    veri = request.json or {}
+    ip_adresi = veri.get("ip_adresi")
+    durum = veri.get("aktif_kullanici", 0)
+    
+    if ip_adresi and ip_adresi != "IP Tespit Edilemedi":
+        if durum == 1:
+            if ip_adresi not in aktif_cihazlar:
+                aktif_cihazlar[ip_adresi] = {
+                    "bilgisayar_adi": veri.get("bilgisayar_adi", "Bilinmeyen Cihaz"),
+                    "canli_kare": b"",
+                    "son_sinyal": time.time()
+                }
+            else:
+                aktif_cihazlar[ip_adresi]["son_sinyal"] = time.time()
+        else:
+            if ip_adresi in aktif_cihazlar:
+                del aktif_cihazlar[ip_adresi]
+                
+    return jsonify({"durum": "ok"})
 
 @app.route('/api/yayin_yukle', methods=['POST'])
 def yayin_yukle():
     global aktif_cihazlar
     ip_adresi = request.headers.get("X-Device-IP")
-    cihaz_adi = request.headers.get("X-Device-Name", "Bilinmeyen Cihaz")
     
-    if ip_adresi:
-        # Yeni kare eskisini doğrudan ezer, ram şişmez, disk dolmaz
-        aktif_cihazlar[ip_adresi] = {
-            "bilgisayar_adi": cihaz_adi,
-            "canli_kare": request.data,
-            "son_sinyal": time.time()
-        }
+    if ip_adresi in aktif_cihazlar:
+        aktif_cihazlar[ip_adresi]["canli_kare"] = request.data
+        aktif_cihazlar[ip_adresi]["son_sinyal"] = time.time()
         return "ok", 200
-    return "hata", 400
+    return "cihaz yok", 404
 
 def kare_ustureteci(ip_adresi):
     global aktif_cihazlar
@@ -58,5 +80,4 @@ def canli_yayin(ip_adresi):
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, port=port, host='0.0.0.0')
+    app.run(debug=False, port=5000, host='0.0.0.0')
