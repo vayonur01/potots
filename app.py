@@ -4,7 +4,7 @@ import time
 
 app = Flask(__name__, template_folder=os.getcwd())
 
-# Dinamik bellek yapısı
+# Gelen karelerin bellekte tutulduğu alan
 aktif_cihazlar = {}
 
 @app.route('/')
@@ -31,7 +31,7 @@ def yayin_yukle():
     cihaz_adi = request.headers.get("X-Device-Name", "Bilinmeyen Cihaz")
     
     if ip_adresi:
-        # Yeni gelen kare eskisini doğrudan ezer (Eskiler silinir)
+        # Yeni kare eskisini doğrudan ezer, ram şişmez, disk dolmaz
         aktif_cihazlar[ip_adresi] = {
             "bilgisayar_adi": cihaz_adi,
             "canli_kare": request.data,
@@ -43,7 +43,7 @@ def yayin_yukle():
 def kare_ustureteci(ip_adresi):
     global aktif_cihazlar
     while True:
-        time.sleep(0.04) # Saniyede ~25 kare hız sınırı
+        time.sleep(0.04)
         if ip_adresi in aktif_cihazlar:
             kare = aktif_cihazlar[ip_adresi].get("canli_kare", b"")
             if kare:
