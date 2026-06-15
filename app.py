@@ -5,10 +5,10 @@ import time
 import base64
 
 app = Flask(__name__, template_folder=os.getcwd())
-app.config['SECRET_KEY'] = 'vayonur_secret_key_123'
-socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SECRET_KEY'] = 'vayonur_ozel_anahtar_9988'
+# Render üzerindeki tüm çapraz bağlantılara (CORS) izin veriyoruz
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
-# Cihazların anlık ekran karelerini ve durumlarını tutan bellek
 aktif_cihazlar = {}
 
 @app.route('/')
@@ -31,7 +31,7 @@ def cihaz_baglan(veri):
 def ekran_akisi(veri):
     ip = veri.get('ip')
     if ip in aktif_cihazlar:
-        # Yeni gelen kare eskisini siler, ram belleği şişmez
+        # Gelen yeni kare hafızadaki eski kareyi siler, şişme yapmaz
         aktif_cihazlar[ip]["kare"] = veri.get('kare')
         aktif_cihazlar[ip]["son_sinyal"] = time.time()
 
@@ -48,7 +48,7 @@ def get_temiz_liste():
 
 def kare_ustureteci(ip_adresi):
     while True:
-        time.sleep(0.04) # Saniyede max 25 kare akış sınırı
+        time.sleep(0.04) # Saniyede 25 kare akış hızı (FPS)
         if ip_adresi in aktif_cihazlar:
             kare = aktif_cihazlar[ip_adresi].get("kare", "")
             if kare:
