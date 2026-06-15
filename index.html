@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Dashboard | Gerçek Canlı Yayın</title>
+    <title>Sistem Dashboard | Canlı İzleme</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
@@ -26,30 +26,31 @@
         .info-row { display: flex; justify-content: space-between; font-size: 14px; }
         .info-label { color: var(--text-secondary); }
         .info-value { color: #fff; font-family: monospace; }
-        .live-btn { background-color: var(--accent-red); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; margin-top: 10px; }
+        .live-btn { background-color: var(--accent-red); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; margin-top: 10px; transition: background 0.2s; }
+        .live-btn:hover { background-color: #dc2626; }
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-secondary); border: 2px dashed var(--border-color); border-radius: 14px; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
         .modal.show { display: flex; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 10px; border: 4px solid #24242b; }
+        .modal-content { max-width: 90%; max-height: 80%; border-radius: 10px; border: 4px solid #24242b; background-color: #000; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; cursor: pointer; }
-        .live-indicator { color: var(--accent-red); font-weight: 800; animation: blink 1s infinite; }
+        .live-indicator { color: var(--accent-red); font-weight: 800; animation: blink 1s infinite; letter-spacing: 1px; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>SİSTEM <span>PANELİ (STREAM)</span></h1>
+        <h1>SİSTEM <span>PANELİ</span></h1>
         <div id="total-count" class="active-badge">Aktif Cihaz: 0</div>
     </header>
 
     <div id="dashboard" class="dashboard-container">
-        <div class="empty-state">Bağlantı bekleniyor...</div>
+        <div class="empty-state">Aktif bağlantı yok. İstemci bekleniyor...</div>
     </div>
 
     <div id="liveModal" class="modal">
         <span class="close-modal" onclick="closeLive()">&times;</span>
-        <div class="live-indicator">🔴 ANLIK GERÇEK ZAMANLI AKIŞ</div>
+        <div class="live-indicator">🔴 CANLI ANLIK AKIŞ</div>
         <img class="modal-content" id="liveStreamImg" src="">
     </div>
 
@@ -64,7 +65,7 @@
             totalCount.innerText = `Aktif Cihaz: ${ipListesi.length}`;
 
             if (ipListesi.length === 0) {
-                dashboard.innerHTML = '<div class="empty-state">Bağlantı bekleniyor...</div>';
+                dashboard.innerHTML = '<div class="empty-state">Aktif bağlantı yok. İstemci bekleniyor...</div>';
                 closeLive();
                 return;
             }
@@ -94,7 +95,6 @@
 
         function closeLive() {
             document.getElementById('liveStreamImg').src = "";
-            document.getElementById('liveModal').classList.remove('remove');
             document.getElementById('liveModal').classList.remove('show');
         }
     </script>
